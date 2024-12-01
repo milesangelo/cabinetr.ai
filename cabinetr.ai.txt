@@ -1,0 +1,626 @@
+--- File: App.tsx ---
+
+import { useState } from 'react'
+import CutlistTable from './components/Cutlist';
+import { CutlistItem } from './types';
+
+
+function roundUpTo16th(num: number): number {
+  return Math.ceil(num * 16) / 16;
+}
+
+interface GlobalSettings {
+  railWidth: number;
+  stileWidth: number;
+  thickness: number;
+  gapSize: number;
+}
+
+interface Overlay {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+interface CabinetOpening {
+  width: number;
+  height: number;
+  overlay: Overlay;
+  quantity: number;
+}
+
+export default function CabinetCutlistGenerator() {
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({
+    railWidth: 2,
+    stileWidth: 2,
+    thickness: 0.75,
+    gapSize: 0.125
+  })
+  const [cabinetOpenings, setCabinetOpenings] = useState<CabinetOpening[]>([])
+  const [newOpening, setNewOpening] = useState<CabinetOpening>({
+    width: 0,
+    height: 0,
+    overlay: { top: 0, bottom: 0, left: 0, right: 0 },
+    quantity: 1
+  })
+
+  const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setGlobalSettings({ ...globalSettings, [name]: parseFloat(value) })
+  }
+
+  const handleOpeningChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    if (name.startsWith('overlay.')) {
+      const [, side] = name.split('.')
+      setNewOpening({
+        ...newOpening,
+        overlay: { ...newOpening.overlay, [side]: parseFloat(value) }
+      })
+    } else {
+      setNewOpening({ ...newOpening, [name]: parseFloat(value) })
+    }
+  }
+
+  const addCabinetOpening = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCabinetOpenings([...cabinetOpenings, newOpening])
+  }
+
+  const clearNewOpening = () => {
+    setNewOpening({
+      width: 0,
+      height: 0,
+      overlay: { top: 0, bottom: 0, left: 0, right: 0 },
+      quantity: 1
+    })
+  }
+
+  const deleteCabinetOpening = (index: number) => {
+    const updatedOpenings = cabinetOpenings.filter((_, i) => i !== index)
+    setCabinetOpenings(updatedOpenings)
+  }
+
+  const calculateCutlist = () => {
+    const cutlist = cabinetOpenings.flatMap((opening, openingIndex) => {
+        const { width, height, overlay, quantity } = opening;
+        const { railWidth, stileWidth, thickness, gapSize } = globalSettings;
+
+        const stileLength = roundUpTo16th((height + overlay.top + overlay.bottom - ((quantity - 1) * gapSize)) / quantity);
+        const railLength = roundUpTo16th(width + overlay.left + overlay.right - (2 * stileWidth) + (2 * 0.375));
+
+        return [
+            { piece: 'Rail', name: `Rail-${openingIndex + 1}`, length: railLength, width: railWidth, thickness, quantity: quantity * 2 },
+            { piece: 'Stile', name: `Stile-${openingIndex + 1}`, length: stileLength, width: stileWidth, thickness, quantity: quantity * 2 }
+        ];
+    });
+
+    // Combine similar pieces
+    const combinedCutlist = cutlist.reduce((acc, item) => {
+        const key = `${item.piece}-${item.length.toFixed(3)}-${item.width}-${item.thickness}`;
+        if (acc[key]) {
+            acc[key].quantity += item.quantity;
+        } else {
+            acc[key] = { ...item };
+        }
+        return acc;
+    }, {} as Record<string, CutlistItem>);
+
+    return Object.values(combinedCutlist);
+};
+
+  const cutlist = calculateCutlist()
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Cabinet Cutlist Generator</h1>
+      
+      <div className="mb-6 p-4 border rounded">
+        <h2 className="text-xl font-semibold mb-2">Global Settings</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <label htmlFor="railWidth" className="block mb-1">Rail Width (inches)</label>
+            <input
+              type="number"
+              id="railWidth"
+              name="railWidth"
+              value={globalSettings.railWidth}
+              onChange={handleSettingsChange}
+              step="0.125"
+              min="0"
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="stileWidth" className="block mb-1">Stile Width (inches)</label>
+            <input
+              type="number"
+              id="stileWidth"
+              name="stileWidth"
+              value={globalSettings.stileWidth}
+              onChange={handleSettingsChange}
+              step="0.125"
+              min="0"
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="thickness" className="block mb-1">Thickness (inches)</label>
+            <input
+              type="number"
+              id="thickness"
+              name="thickness"
+              value={globalSettings.thickness}
+              onChange={handleSettingsChange}
+              step="0.125"
+              min="0"
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="gapSize" className="block mb-1">Gap Size (inches)</label>
+            <input
+              type="number"
+              id="gapSize"
+              name="gapSize"
+              value={globalSettings.gapSize}
+              onChange={handleSettingsChange}
+              step="0.0625"
+              min="0"
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6 p-4 border rounded">
+        <h2 className="text-xl font-semibold mb-2">Add Cabinet Opening</h2>
+        <form onSubmit={addCabinetOpening} className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label htmlFor="width" className="block mb-1">Width (inches)</label>
+            <input
+              type="number"
+              id="width"
+              name="width"
+              value={newOpening.width}
+              onChange={handleOpeningChange}
+              step="0.125"
+              min="0"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="height" className="block mb-1">Height (inches)</label>
+            <input
+              type="number"
+              id="height"
+              name="height"
+              value={newOpening.height}
+              onChange={handleOpeningChange}
+              step="0.125"
+              min="0"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="quantity" className="block mb-1">Quantity</label>
+            <input
+              type="number"
+              id="quantity"
+              name="quantity"
+              value={newOpening.quantity}
+              onChange={handleOpeningChange}
+              min="1"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="overlay.top" className="block mb-1">Top Overlay (inches)</label>
+            <input
+              type="number"
+              id="overlay.top"
+              name="overlay.top"
+              value={newOpening.overlay.top}
+              onChange={handleOpeningChange}
+              step="0.125"
+              min="0"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="overlay.bottom" className="block mb-1">Bottom Overlay (inches)</label>
+            <input
+              type="number"
+              id="overlay.bottom"
+              name="overlay.bottom"
+              value={newOpening.overlay.bottom}
+              onChange={handleOpeningChange}
+              step="0.125"
+              min="0"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="overlay.left" className="block mb-1">Left Overlay (inches)</label>
+            <input
+              type="number"
+              id="overlay.left"
+              name="overlay.left"
+              value={newOpening.overlay.left}
+              onChange={handleOpeningChange}
+              step="0.125"
+              min="0"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
+            <label htmlFor="overlay.right" className="block mb-1">Right Overlay (inches)</label>
+            <input
+              type="number"
+              id="overlay.right"
+              name="overlay.right"
+              value={newOpening.overlay.right}
+              onChange={handleOpeningChange}
+              step="0.125"
+              min="0"
+              required
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div className="flex items-end gap-2 col-span-2 sm:col-span-3">
+            <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">Add</button>
+            <button type="button" onClick={clearNewOpening} className="px-4 py-2 bg-gray-300 rounded">Clear</button>
+          </div>
+        </form>
+
+        <h3 className="text-lg font-semibold mb-2">Cabinet Openings</h3>
+        <ul>
+          {cabinetOpenings.map((opening, index) => (
+            <li key={index} className="mb-2 p-2 border rounded">
+              <div className="flex justify-between items-center">
+                <span>
+                  {opening.width}" x {opening.height}" (Overlay: T:{opening.overlay.top}" B:{opening.overlay.bottom}" L:{opening.overlay.left}" R:{opening.overlay.right}") - Qty: {opening.quantity}
+                </span>
+                <button
+                  onClick={() => deleteCabinetOpening(index)}
+                  className="px-2 py-1 bg-red-500 text-white rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <CutlistTable cutlist={cutlist} />
+    </div>
+  )
+}
+
+
+
+--- File: main.tsx ---
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+
+--- File: .DS_Store ---
+
+Error reading file: 'utf-8' codec can't decode byte 0x86 in position 23: invalid start byte
+
+--- File: types.ts ---
+
+export interface GlobalSettings {
+    railWidth: number
+    stileWidth: number
+    thickness: number
+    gapSize:number
+  }
+  
+  export interface CabinetOpening {
+    width: number
+    height: number
+    overlay: number
+    quantity: number
+  }
+  
+  export interface CutlistItem {
+    piece: string;
+    name: string;
+    length: number;
+    width: number;
+    thickness: number;
+    quantity: number;
+  }
+  
+  export interface CutlistProps {
+    cutlist: CutlistItem[];
+  }
+
+--- File: components/CabinetForm.tsx ---
+
+import { useState } from 'react'
+import { CabinetOpening } from '../types'
+
+interface Props {
+  onAddOpening: (opening: CabinetOpening) => void
+  onUpdateOpening: (index: number, opening: CabinetOpening) => void
+  onDeleteOpening: (index: number) => void
+  cabinetOpenings: CabinetOpening[]
+}
+
+export default function CabinetForm({ onAddOpening, onUpdateOpening, onDeleteOpening, cabinetOpenings }: Props) {
+  const [opening, setOpening] = useState<CabinetOpening>({
+    width: 0,
+    height: 0,
+    overlay: 0,
+    quantity: 1
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setOpening({ ...opening, [name]: parseFloat(value) })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onAddOpening(opening)
+    setOpening({ width: 0, height: 0, overlay: 0, quantity: 1 })
+  }
+
+  return (
+    <div className="mb-4">
+      <h2 className="text-xl font-semibold mb-2">Add Cabinet Opening</h2>
+      <form onSubmit={handleSubmit} className="grid grid-cols-5 gap-4 mb-4">
+        <div>
+          <label htmlFor="width" className="block mb-1">Width (inches)</label>
+          <input
+            type="number"
+            id="width"
+            name="width"
+            value={opening.width}
+            onChange={handleChange}
+            step="0.125"
+            min="0"
+            required
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div>
+          <label htmlFor="height" className="block mb-1">Height (inches)</label>
+          <input
+            type="number"
+            id="height"
+            name="height"
+            value={opening.height}
+            onChange={handleChange}
+            step="0.125"
+            min="0"
+            required
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div>
+          <label htmlFor="overlay" className="block mb-1">Overlay (inches)</label>
+          <input
+            type="number"
+            id="overlay"
+            name="overlay"
+            value={opening.overlay}
+            onChange={handleChange}
+            step="0.125"
+            min="0"
+            required
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div>
+          <label htmlFor="quantity" className="block mb-1">Quantity</label>
+          <input
+            type="number"
+            id="quantity"
+            name="quantity"
+            value={opening.quantity}
+            onChange={handleChange}
+            min="1"
+            required
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div className="flex items-end">
+          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+        </div>
+      </form>
+
+      <h3 className="text-lg font-semibold mb-2">Cabinet Openings</h3>
+      <ul>
+        {cabinetOpenings.map((opening, index) => (
+          <li key={index} className="mb-2 p-2 border rounded">
+            <div className="flex justify-between items-center">
+              <span>
+                {opening.width}" x {opening.height}" (Overlay: {opening.overlay}") - Qty: {opening.quantity}
+              </span>
+              <div>
+                <button
+                  onClick={() => onDeleteOpening(index)}
+                  className="bg-red-500 text-white px-2 py-1 rounded mr-2"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => {
+                    const updatedOpening = { ...opening, overlay: opening.overlay + 0.125 }
+                    onUpdateOpening(index, updatedOpening)
+                  }}
+                  className="bg-green-500 text-white px-2 py-1 rounded"
+                >
+                  Increase Overlay
+                </button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+
+
+--- File: components/Cutlist.tsx ---
+
+import { CutlistProps } from "../types";
+
+  
+  export default function CutlistTable({ cutlist }: CutlistProps) {
+    const exportToCsv = () => {
+        const headers = ['Name', 'Piece', 'Length (inches)', 'Width (inches)', 'Thickness (inches)', 'Quantity'];
+        const csvContent = [
+            headers.join(','),
+            ...cutlist.map(item => 
+                [item.name, item.piece, item.length.toFixed(3), item.width.toFixed(3), item.thickness.toFixed(3), item.quantity].join(',')
+            )
+        ].join('\n');
+    
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'cabinet_cutlist.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+  
+    return (
+        <div className="border rounded p-4">
+            <h2 className="text-xl font-semibold mb-2">Cutlist</h2>
+            <div className="mb-4">
+                <button onClick={exportToCsv} className="px-4 py-2 bg-green-500 text-white rounded">Export to CSV</button>
+            </div>
+            <table className="w-full border-collapse">
+                <thead>
+                    <tr className="bg-gray-100">
+                        <th className="border p-2 text-left">Name</th>
+                        <th className="border p-2 text-left">Piece</th>
+                        <th className="border p-2 text-left">Length (inches)</th>
+                        <th className="border p-2 text-left">Width (inches)</th>
+                        <th className="border p-2 text-left">Thickness (inches)</th>
+                        <th className="border p-2 text-left">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {cutlist.map((item, index) => (
+                        <tr key={index}>
+                            <td className="border p-2">{item.name}</td>
+                            <td className="border p-2">{item.piece}</td>
+                            <td className="border p-2">{item.length.toFixed(3)}</td>
+                            <td className="border p-2">{item.width.toFixed(3)}</td>
+                            <td className="border p-2">{item.thickness.toFixed(3)}</td>
+                            <td className="border p-2">{item.quantity}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+  }
+  
+  
+
+--- File: components/GlobalSettings.tsx ---
+
+import type { GlobalSettings } from '../types';
+
+interface Props {
+  settings: GlobalSettings
+  onSettingsChange: (settings: GlobalSettings) => void
+}
+
+export default function GlobalSettings({ settings, onSettingsChange }: Props) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    onSettingsChange({ ...settings, [name]: parseFloat(value) })
+  }
+
+  return (
+    <div className="mb-4 p-4 border rounded">
+      <h2 className="text-xl font-semibold mb-2">Global Settings</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div>
+          <label htmlFor="railWidth" className="block mb-1">Rail Width (inches)</label>
+          <input
+            type="number"
+            id="railWidth"
+            name="railWidth"
+            value={settings.railWidth}
+            onChange={handleChange}
+            step="0.125"
+            min="0"
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div>
+          <label htmlFor="stileWidth" className="block mb-1">Stile Width (inches)</label>
+          <input
+            type="number"
+            id="stileWidth"
+            name="stileWidth"
+            value={settings.stileWidth}
+            onChange={handleChange}
+            step="0.125"
+            min="0"
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div>
+          <label htmlFor="thickness" className="block mb-1">Thickness (inches)</label>
+          <input
+            type="number"
+            id="thickness"
+            name="thickness"
+            value={settings.thickness}
+            onChange={handleChange}
+            step="0.125"
+            min="0"
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+        <div>
+          <label htmlFor="gapSize" className="block mb-1">Gap Size (inches)</label>
+          <input
+            type="number"
+            id="gapSize"
+            name="gapSize"
+            value={settings.gapSize}
+            onChange={handleChange}
+            step="0.0625"
+            min="0"
+            className="w-full px-2 py-1 border rounded"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
