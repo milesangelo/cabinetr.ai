@@ -2,15 +2,27 @@ export interface GlobalSettings {
     railWidth: number
     stileWidth: number
     thickness: number
-    gapSize:number
+    gapSize: number
+    tongueGrooveDepth: number
+  }
+  
+
+  export interface Overlay {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
   }
   
   export interface CabinetOpening {
-    width: number
-    height: number
-    overlay: number
-    quantity: number
+    width: number;
+    height: number;
+    overlay: Overlay;
+    quantity: number;
+    isDoor: boolean;
+    name: string;
   }
+
   
   export interface CutlistItem {
     piece: string;
