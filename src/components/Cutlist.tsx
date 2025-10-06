@@ -6,8 +6,8 @@ import { CutlistProps } from "../types";
         const headers = ['Name', 'Piece', 'Length (inches)', 'Width (inches)', 'Thickness (inches)', 'Quantity'];
         const csvContent = [
             headers.join(','),
-            ...cutlist.map(item => 
-                [item.name, item.piece, item.length.toFixed(3), item.width.toFixed(3), item.thickness.toFixed(3), item.quantity].join(',')
+            ...cutlist.map(item =>
+                [item.name, item.piece, item.length.toFixed(4), item.width.toFixed(4), item.thickness.toFixed(4), item.quantity].join(',')
             )
         ].join('\n');
     
@@ -44,9 +44,9 @@ import { CutlistProps } from "../types";
                         <tr key={index}>
                             <td className="border p-2">{item.name}</td>
                             <td className="border p-2">{item.piece}</td>
-                            <td className="border p-2">{item.length.toFixed(3)}</td>
-                            <td className="border p-2">{item.width.toFixed(3)}</td>
-                            <td className="border p-2">{item.thickness.toFixed(3)}</td>
+                            <td className="border p-2">{item.length.toFixed(4)}</td>
+                            <td className="border p-2">{item.width.toFixed(4)}</td>
+                            <td className="border p-2">{item.thickness.toFixed(4)}</td>
                             <td className="border p-2">{item.quantity}</td>
                         </tr>
                     ))}
