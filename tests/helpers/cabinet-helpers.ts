@@ -35,6 +35,11 @@ export class CabinetPageHelper {
     await this.page.locator('#height').fill(opening.height.toString());
     await this.page.locator('#quantity').fill(opening.quantity.toString());
 
+    // Fill in name if provided
+    if (opening.name) {
+      await this.page.locator('#name').fill(opening.name);
+    }
+
     // Fill in overlays
     await this.page.locator('#overlay\\.top').fill(opening.overlay.top.toString());
     await this.page.locator('#overlay\\.bottom').fill(opening.overlay.bottom.toString());

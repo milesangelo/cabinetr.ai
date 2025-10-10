@@ -24,6 +24,7 @@ export interface TestCabinetOpening {
   overlay: TestOverlay;
   quantity: number;
   isDoor: boolean;
+  name?: string; // Optional: will auto-generate if not provided
 }
 
 export interface ExpectedCutlistItem {

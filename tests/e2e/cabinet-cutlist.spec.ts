@@ -224,4 +224,43 @@ test.describe('Cabinet Cutlist Generator', () => {
     await helper.verifyCutlistItem('Stile', 21, 2.5, 0.75, 2);
     await helper.verifyCutlistItem('Rail', 11.75, 2.5, 0.75, 2);
   });
+
+  test('should allow custom names for cabinet openings', async () => {
+    await helper.fillGlobalSettings(simpleDoorScenario.globalSettings);
+
+    // Add a door with custom name
+    const customNamedDoor = {
+      ...simpleDoorScenario.cabinetOpenings[0],
+      name: 'KITCHEN_UPPER',
+    };
+    await helper.addCabinetOpening(customNamedDoor);
+
+    // Verify the cutlist has items with the custom name
+    const cutlistItems = await helper.getCutlistItems();
+    const customNamedItems = cutlistItems.filter((item) => item.name.includes('KITCHEN_UPPER'));
+
+    expect(customNamedItems.length).toBeGreaterThan(0);
+    expect(customNamedItems.some((item) => item.name === 'KITCHEN_UPPER_rails')).toBe(true);
+    expect(customNamedItems.some((item) => item.name === 'KITCHEN_UPPER_stiles')).toBe(true);
+    expect(customNamedItems.some((item) => item.name === 'KITCHEN_UPPER_panel')).toBe(true);
+  });
+
+  test('should auto-generate names when name field is empty', async () => {
+    await helper.fillGlobalSettings(simpleDoorScenario.globalSettings);
+
+    // Add a door without custom name (should auto-generate DOOR1)
+    await helper.addCabinetOpening(simpleDoorScenario.cabinetOpenings[0]);
+
+    // Add a drawer without custom name (should auto-generate DRWR1)
+    await helper.addCabinetOpening(drawerFrontScenario.cabinetOpenings[0]);
+
+    // Verify the cutlist has auto-generated names
+    const cutlistItems = await helper.getCutlistItems();
+
+    const doorItems = cutlistItems.filter((item) => item.name.includes('DOOR1'));
+    const drawerItems = cutlistItems.filter((item) => item.name.includes('DRWR1'));
+
+    expect(doorItems.length).toBeGreaterThan(0);
+    expect(drawerItems.length).toBeGreaterThan(0);
+  });
 });

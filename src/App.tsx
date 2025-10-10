@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import CutlistTable from './components/Cutlist';
+import CabinetVisualization from './components/CabinetVisualization';
 import { CabinetOpening, CutlistItem, GlobalSettings } from './types';
 import { calculateCutlist } from './utils/calculations';
 
@@ -38,6 +39,8 @@ export default function CabinetCutlistGenerator() {
       })
     } else if (type === 'checkbox') {
       setNewOpening({ ...newOpening, [name]: checked })
+    } else if (name === 'name') {
+      setNewOpening({ ...newOpening, [name]: value })
     } else {
       setNewOpening({ ...newOpening, [name]: parseFloat(value) })
     }
@@ -45,17 +48,23 @@ export default function CabinetCutlistGenerator() {
 
   const addCabinetOpening = (e: React.FormEvent) => {
     e.preventDefault()
-    const prefix = newOpening.isDoor ? 'DOOR' : 'DRWR'
-    const count = newOpening.isDoor ? doorCount + 1 : drawerCount + 1
-    const name = `${prefix}${count}`
-    
-    setCabinetOpenings([...cabinetOpenings, { ...newOpening, name }])
-    
-    if (newOpening.isDoor) {
-      setDoorCount(count)
-    } else {
-      setDrawerCount(count)
+
+    // Use custom name if provided, otherwise auto-generate
+    let finalName = newOpening.name.trim()
+    if (!finalName) {
+      const prefix = newOpening.isDoor ? 'DOOR' : 'DRWR'
+      const count = newOpening.isDoor ? doorCount + 1 : drawerCount + 1
+      finalName = `${prefix}${count}`
+
+      // Only increment counters if we auto-generated the name
+      if (newOpening.isDoor) {
+        setDoorCount(count)
+      } else {
+        setDrawerCount(count)
+      }
     }
+
+    setCabinetOpenings([...cabinetOpenings, { ...newOpening, name: finalName }])
 
     // Update only the name, keeping other values
     setNewOpening(prev => ({
@@ -202,6 +211,18 @@ export default function CabinetCutlistGenerator() {
             />
           </div>
           <div>
+            <label htmlFor="name" className="block mb-1">Name (optional)</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={newOpening.name}
+              onChange={handleOpeningChange}
+              placeholder="Auto-generated if empty"
+              className="w-full px-2 py-1 border rounded"
+            />
+          </div>
+          <div>
             <label htmlFor="overlay.top" className="block mb-1">Top Overlay (inches)</label>
             <input
               type="number"
@@ -293,6 +314,29 @@ export default function CabinetCutlistGenerator() {
           ))}
         </ul>
       </div>
+
+      {/* Preview Visualization for Current Input */}
+      {newOpening.width > 0 && newOpening.height > 0 && (
+        <div className="mb-6">
+          <CabinetVisualization opening={newOpening} globalSettings={globalSettings} />
+        </div>
+      )}
+
+      {/* Visualizations for Added Cabinet Openings */}
+      {cabinetOpenings.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold mb-4">2D Visualizations</h2>
+          <div className="grid grid-cols-1 gap-6">
+            {cabinetOpenings.map((opening, index) => (
+              <CabinetVisualization
+                key={index}
+                opening={opening}
+                globalSettings={globalSettings}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <CutlistTable cutlist={cutlist} />
     </div>
