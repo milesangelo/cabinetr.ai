@@ -1,177 +1,190 @@
-import { Page, expect } from '@playwright/test';
-import { TestGlobalSettings, TestCabinetOpening, ExpectedCutlistItem } from '../fixtures/test-data';
+import { Page, expect } from "@playwright/test";
+import { CabinetTestData } from "../fixtures/test-data";
 
-/**
- * Helper class for interacting with the Cabinet Cutlist Generator
- */
-export class CabinetPageHelper {
+export class CabinetHelpers {
   constructor(private page: Page) {}
 
   /**
-   * Navigate to the application
+   * Navigate to the cabinet calculator home page
    */
   async goto() {
-    await this.page.goto('/');
-    await expect(this.page.getByRole('heading', { name: 'Cabinet Cutlist Generator' })).toBeVisible();
+    await this.page.goto("/cabinet/new");
+    await expect(this.page.getByRole("heading", { name: "3D Preview" })).toBeVisible();
   }
 
   /**
-   * Fill in the global settings form
+   * Fill in cabinet opening dimensions
    */
-  async fillGlobalSettings(settings: TestGlobalSettings) {
-    await this.page.locator('#railWidth').fill(settings.railWidth.toString());
-    await this.page.locator('#stileWidth').fill(settings.stileWidth.toString());
-    await this.page.locator('#thickness').fill(settings.thickness.toString());
-    await this.page.locator('#gapSize').fill(settings.gapSize.toString());
-    await this.page.locator('#tongueGrooveDepth').fill(settings.tongueGrooveDepth.toString());
+  async fillCabinetDimensions(config: Partial<CabinetTestData>) {
+    if (config.openingWidth !== undefined) {
+      await this.page.locator("input#width").fill(String(config.openingWidth));
+    }
+    if (config.openingHeight !== undefined) {
+      await this.page.locator("input#height").fill(String(config.openingHeight));
+    }
   }
 
   /**
-   * Add a cabinet opening (door or drawer front)
+   * Fill in overlap dimensions
    */
-  async addCabinetOpening(opening: TestCabinetOpening) {
-    // Fill in dimensions
-    await this.page.locator('#width').fill(opening.width.toString());
-    await this.page.locator('#height').fill(opening.height.toString());
-    await this.page.locator('#quantity').fill(opening.quantity.toString());
+  async fillOverlaps(config: Partial<CabinetTestData>) {
+    if (config.topOverlap !== undefined) {
+      await this.page.locator("input#top").fill(String(config.topOverlap));
+    }
+    if (config.bottomOverlap !== undefined) {
+      await this.page.locator("input#bottom").fill(String(config.bottomOverlap));
+    }
+    if (config.leftOverlap !== undefined) {
+      await this.page.locator("input#left").fill(String(config.leftOverlap));
+    }
+    if (config.rightOverlap !== undefined) {
+      await this.page.locator("input#right").fill(String(config.rightOverlap));
+    }
+  }
 
-    // Fill in name if provided
-    if (opening.name) {
-      await this.page.locator('#name').fill(opening.name);
+  /**
+   * Fill in configuration settings
+   */
+  async fillConfiguration(config: Partial<CabinetTestData>) {
+    if (config.gap !== undefined) {
+      await this.page.locator("input#gap").fill(String(config.gap));
+    }
+    if (config.type !== undefined) {
+      if (config.type === "door") {
+        await this.page.getByLabel(/^Doors/).click();
+      } else {
+        await this.page.getByLabel(/^Drawers/).click();
+      }
+    }
+    if (config.quantity !== undefined) {
+      await this.page.locator("input#quantity").fill(String(config.quantity));
+    }
+  }
+
+  /**
+   * Fill in stile and rail dimensions
+   */
+  async fillStileAndRail(config: Partial<CabinetTestData>) {
+    if (config.stileWidth !== undefined) {
+      await this.page.getByLabel("Stile Width (inches)").fill(String(config.stileWidth));
+    }
+    if (config.railWidth !== undefined) {
+      await this.page.getByLabel("Rail Width (inches)").fill(String(config.railWidth));
+    }
+    if (config.routerDepth !== undefined) {
+      await this.page.getByLabel("Router Depth (inches)").fill(String(config.routerDepth));
+    }
+  }
+
+  /**
+   * Configure entire cabinet with all parameters
+   */
+  async configureCabinet(config: CabinetTestData) {
+    await this.fillCabinetDimensions(config);
+    await this.fillOverlaps(config);
+    await this.fillConfiguration(config);
+    await this.fillStileAndRail(config);
+  }
+
+  /**
+   * Get calculated dimension value
+   */
+  async getCalculatedDimension(label: string): Promise<number> {
+    const text = await this.page
+      .getByText(label)
+      .locator("..")
+      .getByText(/"$/)
+      .textContent();
+
+    if (!text) {
+      throw new Error(`Could not find calculated dimension for ${label}`);
     }
 
-    // Fill in overlays
-    await this.page.locator('#overlay\\.top').fill(opening.overlay.top.toString());
-    await this.page.locator('#overlay\\.bottom').fill(opening.overlay.bottom.toString());
-    await this.page.locator('#overlay\\.left').fill(opening.overlay.left.toString());
-    await this.page.locator('#overlay\\.right').fill(opening.overlay.right.toString());
-
-    // Set door/drawer checkbox
-    const isDoorCheckbox = this.page.locator('#isDoor');
-    const isChecked = await isDoorCheckbox.isChecked();
-    if (opening.isDoor && !isChecked) {
-      await isDoorCheckbox.check();
-    } else if (!opening.isDoor && isChecked) {
-      await isDoorCheckbox.uncheck();
-    }
-
-    // Submit the form
-    await this.page.getByRole('button', { name: 'Add' }).click();
-
-    // Wait for cutlist to update by checking that table has rows
-    await this.page.waitForSelector('tbody tr', { timeout: 5000 });
+    return parseFloat(text.replace('"', ""));
   }
 
   /**
-   * Get all cutlist items from the table
+   * Verify calculated dimensions match expected values
    */
-  async getCutlistItems(): Promise<Array<{
-    name: string;
-    piece: string;
-    length: number;
+  async verifyCalculatedDimensions(expected: {
+    individualWidth?: number;
+    individualHeight?: number;
+    stileWidth?: number;
+    railWidth?: number;
+  }) {
+    if (expected.individualWidth !== undefined) {
+      const width = await this.getCalculatedDimension("Individual Width");
+      expect(width).toBeCloseTo(expected.individualWidth, 3);
+    }
+    if (expected.individualHeight !== undefined) {
+      const height = await this.getCalculatedDimension("Individual Height");
+      expect(height).toBeCloseTo(expected.individualHeight, 3);
+    }
+    if (expected.stileWidth !== undefined) {
+      const stileWidth = await this.getCalculatedDimension("Stile Width");
+      expect(stileWidth).toBeCloseTo(expected.stileWidth, 3);
+    }
+    if (expected.railWidth !== undefined) {
+      const railWidth = await this.getCalculatedDimension("Rail Width");
+      expect(railWidth).toBeCloseTo(expected.railWidth, 3);
+    }
+  }
+
+  /**
+   * Click download CSV button and wait for download
+   */
+  async downloadCSV(): Promise<string> {
+    const downloadPromise = this.page.waitForEvent("download");
+    const csvButton = this.page.getByRole("button", { name: /CSV/i });
+    await csvButton.click();
+    const download = await downloadPromise;
+    const path = await download.path();
+
+    if (!path) {
+      throw new Error("Download failed - no path returned");
+    }
+
+    return path;
+  }
+
+  /**
+   * Click on a piece to expand details
+   */
+  async expandPiece(pieceName: string) {
+    await this.page.getByText(pieceName).first().click();
+    await expect(this.page.getByText("Width")).toBeVisible();
+    await expect(this.page.getByText("Length")).toBeVisible();
+  }
+
+  /**
+   * Get piece details after expanding
+   */
+  async getPieceDetails(pieceName: string): Promise<{
     width: number;
-    thickness: number;
+    length: number;
     quantity: number;
-  }>> {
-    const rows = await this.page.locator('tbody tr').all();
-    const items = [];
+  }> {
+    const pieceContainer = this.page.locator("div").filter({ hasText: new RegExp(`^${pieceName}`) }).first();
 
-    for (const row of rows) {
-      const cells = await row.locator('td').allTextContents();
-      items.push({
-        name: cells[0],
-        piece: cells[1],
-        length: parseFloat(cells[2]),
-        width: parseFloat(cells[3]),
-        thickness: parseFloat(cells[4]),
-        quantity: parseInt(cells[5]),
-      });
-    }
+    // Get quantity from the piece header
+    const quantityText = await pieceContainer.getByText(/Qty:/).textContent();
+    const quantity = quantityText ? parseInt(quantityText.replace("Qty:", "").trim()) : 0;
 
-    return items;
+    // Get width and length from expanded details
+    const widthText = await pieceContainer.getByText(/Width/).locator("..").locator("p").last().textContent();
+    const lengthText = await pieceContainer.getByText(/Length/).locator("..").locator("p").last().textContent();
+
+    const width = widthText ? parseFloat(widthText.replace('"', "")) : 0;
+    const length = lengthText ? parseFloat(lengthText.replace('"', "")) : 0;
+
+    return { width, length, quantity };
   }
 
   /**
-   * Verify that the cutlist matches the expected items
+   * Wait for calculations to update
    */
-  async verifyCutlist(expectedItems: ExpectedCutlistItem[]) {
-    const actualItems = await this.getCutlistItems();
-
-    // Check that we have the right number of items
-    expect(actualItems.length).toBe(expectedItems.length);
-
-    // For each expected item, find a matching actual item
-    for (const expected of expectedItems) {
-      const matchingItem = actualItems.find(
-        (actual) =>
-          actual.piece === expected.piece &&
-          Math.abs(actual.length - expected.length) < 0.0001 &&
-          Math.abs(actual.width - expected.width) < 0.0001 &&
-          Math.abs(actual.thickness - expected.thickness) < 0.0001 &&
-          actual.quantity === expected.quantity
-      );
-
-      expect(matchingItem,
-        `Expected to find cutlist item: ${expected.piece} with ` +
-        `length=${expected.length}, width=${expected.width}, ` +
-        `thickness=${expected.thickness}, quantity=${expected.quantity}`
-      ).toBeDefined();
-    }
-  }
-
-  /**
-   * Verify a specific cutlist item
-   */
-  async verifyCutlistItem(
-    piece: string,
-    expectedLength: number,
-    expectedWidth: number,
-    expectedThickness: number,
-    expectedQuantity: number
-  ) {
-    const actualItems = await this.getCutlistItems();
-    const item = actualItems.find((i) => i.piece === piece);
-
-    expect(item, `Expected to find ${piece} in cutlist`).toBeDefined();
-
-    if (item) {
-      expect(item.length).toBeCloseTo(expectedLength, 3);
-      expect(item.width).toBeCloseTo(expectedWidth, 3);
-      expect(item.thickness).toBeCloseTo(expectedThickness, 3);
-      expect(item.quantity).toBe(expectedQuantity);
-    }
-  }
-
-  /**
-   * Clear the form
-   */
-  async clearForm() {
-    await this.page.getByRole('button', { name: 'Clear' }).click();
-  }
-
-  /**
-   * Delete a cabinet opening by index
-   */
-  async deleteCabinetOpening(index: number) {
-    const deleteButtons = await this.page.getByRole('button', { name: 'Delete' }).all();
-    if (deleteButtons[index]) {
-      await deleteButtons[index].click();
-    }
-  }
-
-  /**
-   * Get the number of cabinet openings currently added
-   */
-  async getCabinetOpeningsCount(): Promise<number> {
-    const openingsList = await this.page.locator('ul li').all();
-    return openingsList.length;
-  }
-
-  /**
-   * Verify that the cutlist table is visible
-   */
-  async verifyCutlistTableVisible() {
-    await expect(this.page.getByRole('heading', { name: 'Cutlist', exact: true })).toBeVisible();
-    await expect(this.page.locator('table')).toBeVisible();
+  async waitForCalculation() {
+    // Wait a brief moment for React to update calculations
+    await this.page.waitForTimeout(100);
   }
 }

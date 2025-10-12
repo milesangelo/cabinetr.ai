@@ -1,165 +1,164 @@
-# E2E Tests for Cabinet Cutlist Generator
+# Cabinet Calculator E2E Tests
 
-This directory contains end-to-end tests for the Cabinet Cutlist Generator application using Playwright.
+This directory contains comprehensive Playwright end-to-end tests for the Cabinet Door Calculator application.
 
-## Directory Structure
+## Test Structure
 
 ```
 tests/
-├── e2e/                    # E2E test files
-│   └── cabinet-cutlist.spec.ts
-├── fixtures/               # Test data and scenarios
-│   └── test-data.ts
-├── helpers/                # Helper functions for tests
-│   └── cabinet-helpers.ts
-└── README.md              # This file
+├── e2e/                          # E2E test files
+│   ├── basic-calculations.spec.ts    # Core calculation tests
+│   ├── type-switching.spec.ts        # Door/drawer switching tests
+│   ├── csv-download.spec.ts          # CSV download functionality tests
+│   ├── pieces-view.spec.ts           # Pieces view interaction tests
+│   └── input-validation.spec.ts      # Input validation and edge cases
+├── helpers/                      # Test helper utilities
+│   └── cabinet-helpers.ts            # Helper class with common test operations
+├── fixtures/                     # Test data fixtures
+│   └── test-data.ts                  # Predefined test configurations
+└── README.md                     # This file
 ```
 
 ## Running Tests
 
-### Run all e2e tests (headless mode)
+### Run all tests (headless)
 ```bash
 npm run test:e2e
 ```
 
-### Run tests with UI mode (recommended for debugging)
+### Run tests with UI mode (recommended for development)
 ```bash
 npm run test:e2e:ui
 ```
 
-### Run tests in headed mode (see the browser)
+### Run tests in headed mode (see browser)
 ```bash
 npm run test:e2e:headed
 ```
 
-### Run tests in debug mode (step through)
+### View test report
 ```bash
-npm run test:e2e:debug
+npm run test:e2e:report
 ```
-
-## Modifying Test Dimensions
-
-To easily change the dimensions used in tests, edit the file `tests/fixtures/test-data.ts`.
-
-### Example: Modify the custom scenario
-
-Open `tests/fixtures/test-data.ts` and find the `customScenario` object:
-
-```typescript
-export const customScenario: TestScenario = {
-  name: 'Custom Test Scenario',
-  globalSettings: {
-    railWidth: 1,              // Change this
-    stileWidth: 1,             // Change this
-    thickness: 0.75,           // Change this
-    gapSize: 0.125,            // Change this
-    tongueGrooveDepth: 0.375,  // Change this
-  },
-  cabinetOpenings: [
-    {
-      width: 15,               // Change this
-      height: 20,              // Change this
-      overlay: {
-        top: 0.75,             // Change this
-        bottom: 0.25,          // Change this
-        left: 0.625,           // Change this
-        right: 0.375           // Change this
-      },
-      quantity: 1,             // Change this
-      isDoor: true,            // Change this to false for drawer
-    },
-  ],
-  expectedCutlist: [
-    // Update these based on your calculations
-    { piece: 'Rail', length: 15.75, width: 1, thickness: 0.75, quantity: 2 },
-    { piece: 'Stile', length: 21, width: 1, thickness: 0.75, quantity: 2 },
-    { piece: 'Panel', length: 19.75, width: 15.75, thickness: 0.75, quantity: 1 },
-  ],
-};
-```
-
-### Adding New Test Scenarios
-
-1. Create a new scenario in `test-data.ts`:
-
-```typescript
-export const myNewScenario: TestScenario = {
-  name: 'My New Test',
-  globalSettings: {
-    // Your settings here
-  },
-  cabinetOpenings: [
-    // Your cabinet openings here
-  ],
-  expectedCutlist: [
-    // Your expected cutlist here
-  ],
-};
-```
-
-2. Add a test case in `tests/e2e/cabinet-cutlist.spec.ts`:
-
-```typescript
-test('should calculate cutlist for my new scenario', async () => {
-  const scenario = myNewScenario;
-
-  await helper.fillGlobalSettings(scenario.globalSettings);
-  await helper.addCabinetOpening(scenario.cabinetOpenings[0]);
-  await helper.verifyCutlist(scenario.expectedCutlist);
-});
-```
-
-## Helper Functions
-
-The `CabinetPageHelper` class provides convenient methods for interacting with the application:
-
-- `goto()` - Navigate to the application
-- `fillGlobalSettings(settings)` - Fill in global settings
-- `addCabinetOpening(opening)` - Add a cabinet opening
-- `getCutlistItems()` - Get all cutlist items from the table
-- `verifyCutlist(expectedItems)` - Verify the entire cutlist
-- `verifyCutlistItem(piece, length, width, thickness, quantity)` - Verify a specific item
-- `clearForm()` - Clear the form
-- `deleteCabinetOpening(index)` - Delete a cabinet opening
-- `getCabinetOpeningsCount()` - Get the count of cabinet openings
 
 ## Test Coverage
 
-The test suite covers:
+### 1. Basic Calculations (`basic-calculations.spec.ts`)
+- ✅ Application loads with default values
+- ✅ Correct dimension calculations for various configurations
+- ✅ Dynamic updates when inputs change
+- ✅ Decimal precision (1/16 inch accuracy)
+- ✅ Custom overlap configurations
+- ✅ Stile and rail dimension display
 
-- ✅ Simple single door calculations
-- ✅ Multiple doors (quantity > 1)
-- ✅ Drawer front calculations
-- ✅ Custom dimensions
-- ✅ Multiple different openings
-- ✅ Form clearing
-- ✅ Deleting openings
-- ✅ Dynamic updates when global settings change
-- ✅ Asymmetric overlays
+### 2. Type Switching (`type-switching.spec.ts`)
+- ✅ Door to drawer switching and recalculation
+- ✅ Drawer to door switching and recalculation
+- ✅ Quantity changes for doors (side by side)
+- ✅ Quantity changes for drawers (stacked)
+- ✅ Multiple type toggle cycles
+- ✅ Gap calculation with different quantities
+- ✅ Stile/rail dimension persistence
 
-## Calculating Expected Values
+### 3. CSV Download (`csv-download.spec.ts`)
+- ✅ CSV file download functionality
+- ✅ Correct CSV headers
+- ✅ Accurate data for two doors configuration
+- ✅ Accurate data for three drawers configuration
+- ✅ Accurate data for single door configuration
+- ✅ Notes field inclusion
+- ✅ Proper CSV formatting with quotes
+- ✅ Filename with current date
+- ✅ CSV dimensions match UI dimensions
+- ✅ Decimal precision in CSV output
+- ✅ CSV updates with configuration changes
 
-To calculate expected cutlist values for your test scenarios:
+### 4. Pieces View (`pieces-view.spec.ts`)
+- ✅ Display all three piece types (Stile, Rail, Center Panel)
+- ✅ Quantity display for each piece
+- ✅ Expand/collapse piece details
+- ✅ Correct dimensions for stile pieces
+- ✅ Correct dimensions for rail pieces
+- ✅ Correct dimensions for center panel pieces
+- ✅ Quantity updates with configuration changes
+- ✅ Notes display for each piece type
+- ✅ Router depth in notes
+- ✅ Visual highlighting of selected pieces
+- ✅ Help text visibility
+- ✅ Download CSV button presence
+- ✅ Dimension updates on input changes
+- ✅ Correct piece order
 
-### For Doors:
-- **Stile Length** = height + overlay.top + overlay.bottom (rounded up to 1/16")
-- **Rail Length** = (width + overlay.left + overlay.right - (quantity - 1) × gapSize) / quantity - (2 × stileWidth) + (2 × tongueGrooveDepth) (rounded up to 1/16")
-- **Panel Length** = stileLength - (2 × stileWidth) + (2 × tongueGrooveDepth) (rounded up to 1/16")
-- **Panel Width** = railLength
+### 5. Input Validation (`input-validation.spec.ts`)
+- ✅ 1/16 inch precision (0.0625)
+- ✅ 1/8 inch precision (0.125)
+- ✅ 1/32 inch precision (0.03125)
+- ✅ Very small dimensions
+- ✅ Very large dimensions
+- ✅ Maximum quantity (6 doors/drawers)
+- ✅ Zero gap handling
+- ✅ Large gap handling
+- ✅ Zero overlaps
+- ✅ Large overlaps
+- ✅ Different stile and rail widths
+- ✅ Router depth changes
+- ✅ Asymmetric overlaps
+- ✅ Rapid input changes
+- ✅ Calculation accuracy across type switches
+- ✅ Narrow stile/rail configurations
+- ✅ Wide stile/rail configurations
+- ✅ Multiple decimal operations precision
 
-### For Drawer Fronts:
-- **Stile Length** = (height + overlay.top + overlay.bottom - (quantity - 1) × gapSize) / quantity (rounded up to 1/16")
-- **Rail Length** = width + overlay.left + overlay.right - (2 × stileWidth) + (2 × tongueGrooveDepth) (rounded up to 1/16")
-- **Panel Length** = stileLength - (2 × stileWidth) + (2 × tongueGrooveDepth) (rounded up to 1/16")
-- **Panel Width** = railLength
+## Test Helpers
 
-## Troubleshooting
+The `CabinetHelpers` class provides convenient methods for common test operations:
 
-### Tests fail with "Page not found"
-Make sure your dev server is running. The tests will automatically start the dev server, but if port 5173 is in use, you may need to adjust the `playwright.config.ts`.
+- `goto()` - Navigate to the application
+- `fillCabinetDimensions()` - Fill width and height inputs
+- `fillOverlaps()` - Fill overlap inputs
+- `fillConfiguration()` - Fill gap, type, and quantity
+- `fillStileAndRail()` - Fill stile, rail, and router depth
+- `configureCabinet()` - Fill all inputs at once
+- `getCalculatedDimension()` - Get calculated dimension value
+- `verifyCalculatedDimensions()` - Verify expected dimensions
+- `downloadCSV()` - Download CSV and return file path
+- `expandPiece()` - Expand piece details
+- `getPieceDetails()` - Get piece dimensions and quantity
+- `waitForCalculation()` - Wait for calculations to update
 
-### Expected values don't match
-Remember that all dimensions are rounded up to the nearest 1/16" (0.0625"). Use the `roundUpTo16th` helper function from calculations.ts to calculate expected values.
+## Test Fixtures
 
-### Tests are flaky
-Try running with `--headed` or `--debug` mode to see what's happening. The tests include appropriate waits, but you may need to add additional assertions if the UI is slow to update.
+Pre-configured test data in `fixtures/test-data.ts`:
+
+- `defaultCabinetConfig` - Default configuration
+- `twoDoorConfig` - Two doors side by side
+- `threeDrawerConfig` - Three stacked drawers
+- `singleDoorConfig` - Single door
+- `customOverlapConfig` - Custom overlap settings
+- `twoDoorExpectedDimensions` - Expected dimensions for two door config
+- `twoDoorExpectedPieces` - Expected pieces for two door config
+
+## Browser Coverage
+
+Tests run on three browsers:
+- Chromium (Chrome/Edge)
+- Firefox
+- WebKit (Safari)
+
+## Continuous Integration
+
+The tests are configured to:
+- Run in headless mode on CI
+- Retry failed tests twice
+- Run tests sequentially (not in parallel)
+- Generate HTML reports
+- Capture traces on first retry
+- Take screenshots on failure
+
+## Notes
+
+- Tests use realistic cabinet dimensions and configurations
+- All calculations are verified to 3-4 decimal places
+- CSV download tests verify both file content and formatting
+- Pieces view tests verify both UI interactions and data accuracy
+- Edge cases include very small/large dimensions and various precision levels
