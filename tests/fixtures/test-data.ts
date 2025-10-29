@@ -1,166 +1,106 @@
-/**
- * Test fixtures for cabinet cutlist e2e tests.
- * Modify these values to test different scenarios.
- */
-
-export interface TestGlobalSettings {
-  railWidth: number;
+export interface CabinetTestData {
+  openingWidth: number;
+  openingHeight: number;
+  topOverlap: number;
+  bottomOverlap: number;
+  leftOverlap: number;
+  rightOverlap: number;
+  gap: number;
+  type: "door" | "drawer";
+  quantity: number;
   stileWidth: number;
-  thickness: number;
-  gapSize: number;
-  tongueGrooveDepth: number;
+  railWidth: number;
+  routerDepth: number;
 }
 
-export interface TestOverlay {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
+export interface ExpectedDimensions {
+  individualWidth: number;
+  individualHeight: number;
+  stileWidth: number;
+  railWidth: number;
 }
 
-export interface TestCabinetOpening {
-  width: number;
-  height: number;
-  overlay: TestOverlay;
-  quantity: number;
-  isDoor: boolean;
-  name?: string; // Optional: will auto-generate if not provided
-}
-
-export interface ExpectedCutlistItem {
-  piece: string;
-  length: number;
-  width: number;
-  thickness: number;
-  quantity: number;
-}
-
-export interface TestScenario {
+export interface ExpectedPiece {
   name: string;
-  globalSettings: TestGlobalSettings;
-  cabinetOpenings: TestCabinetOpening[];
-  expectedCutlist: ExpectedCutlistItem[];
+  width: number;
+  length: number;
+  quantity: number;
 }
 
-/**
- * Test Scenario 1: Simple single door
- */
-export const simpleDoorScenario: TestScenario = {
-  name: 'Simple Single Door',
-  globalSettings: {
-    railWidth: 2.5,
-    stileWidth: 2.5,
-    thickness: 0.75,
-    gapSize: 0.125,
-    tongueGrooveDepth: 0.375,
-  },
-  cabinetOpenings: [
-    {
-      width: 12,
-      height: 24,
-      overlay: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
-      quantity: 1,
-      isDoor: true,
-    },
-  ],
-  expectedCutlist: [
-    { piece: 'Rail', length: 8.75, width: 2.5, thickness: 0.75, quantity: 2 },
-    { piece: 'Stile', length: 25, width: 2.5, thickness: 0.75, quantity: 2 },
-    { piece: 'Panel', length: 20.75, width: 8.75, thickness: 0.75, quantity: 1 },
-  ],
+export const defaultCabinetConfig: CabinetTestData = {
+  openingWidth: 24,
+  openingHeight: 30,
+  topOverlap: 0.5,
+  bottomOverlap: 0.5,
+  leftOverlap: 0.5,
+  rightOverlap: 0.5,
+  gap: 0.125,
+  type: "door",
+  quantity: 2,
+  stileWidth: 1,
+  railWidth: 1,
+  routerDepth: 0.375,
 };
 
-/**
- * Test Scenario 2: Multiple doors (quantity > 1)
- */
-export const multipleDoorScenario: TestScenario = {
-  name: 'Multiple Doors',
-  globalSettings: {
-    railWidth: 2.5,
-    stileWidth: 2.5,
-    thickness: 0.75,
-    gapSize: 0.125,
-    tongueGrooveDepth: 0.375,
-  },
-  cabinetOpenings: [
-    {
-      width: 24,
-      height: 30,
-      overlay: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
-      quantity: 2,
-      isDoor: true,
-    },
-  ],
-  expectedCutlist: [
-    { piece: 'Rail', length: 8.1875, width: 2.5, thickness: 0.75, quantity: 4 },
-    { piece: 'Stile', length: 31, width: 2.5, thickness: 0.75, quantity: 4 },
-    { piece: 'Panel', length: 26.75, width: 8.1875, thickness: 0.75, quantity: 2 },
-  ],
+export const twoDoorConfig: CabinetTestData = {
+  ...defaultCabinetConfig,
+  openingWidth: 24,
+  openingHeight: 30,
+  quantity: 2,
+  type: "door",
 };
 
-/**
- * Test Scenario 3: Drawer front
- */
-export const drawerFrontScenario: TestScenario = {
-  name: 'Drawer Front',
-  globalSettings: {
-    railWidth: 2.5,
-    stileWidth: 2.5,
-    thickness: 0.75,
-    gapSize: 0.125,
-    tongueGrooveDepth: 0.375,
-  },
-  cabinetOpenings: [
-    {
-      width: 18,
-      height: 6,
-      overlay: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
-      quantity: 1,
-      isDoor: false,
-    },
-  ],
-  expectedCutlist: [
-    { piece: 'Rail', length: 14.75, width: 2.5, thickness: 0.75, quantity: 2 },
-    { piece: 'Stile', length: 7, width: 2.5, thickness: 0.75, quantity: 2 },
-    { piece: 'Panel', length: 2.75, width: 14.75, thickness: 0.75, quantity: 1 },
-  ],
+export const threeDrawerConfig: CabinetTestData = {
+  ...defaultCabinetConfig,
+  openingWidth: 18,
+  openingHeight: 24,
+  quantity: 3,
+  type: "drawer",
 };
 
-/**
- * Test Scenario 4: Custom dimensions for easy modification
- * MODIFY THESE VALUES TO TEST YOUR OWN SCENARIOS
- */
-export const customScenario: TestScenario = {
-  name: 'Custom Test Scenario',
-  globalSettings: {
-    railWidth: 1,
-    stileWidth: 1,
-    thickness: 0.75,
-    gapSize: 0.125,
-    tongueGrooveDepth: 0.375,
-  },
-  cabinetOpenings: [
-    {
-      width: 15,
-      height: 20,
-      overlay: { top: 0.75, bottom: 0.25, left: 0.625, right: 0.375 },
-      quantity: 1,
-      isDoor: true,
-    },
-  ],
-  expectedCutlist: [
-    { piece: 'Rail', length: 14.75, width: 1, thickness: 0.75, quantity: 2 },
-    { piece: 'Stile', length: 21, width: 1, thickness: 0.75, quantity: 2 },
-    { piece: 'Panel', length: 19.75, width: 14.75, thickness: 0.75, quantity: 1 },
-  ],
+export const singleDoorConfig: CabinetTestData = {
+  ...defaultCabinetConfig,
+  openingWidth: 18,
+  openingHeight: 36,
+  quantity: 1,
+  type: "door",
 };
 
-/**
- * All test scenarios
- */
-export const allScenarios = [
-  simpleDoorScenario,
-  multipleDoorScenario,
-  drawerFrontScenario,
-  customScenario,
+export const customOverlapConfig: CabinetTestData = {
+  ...defaultCabinetConfig,
+  topOverlap: 0.75,
+  bottomOverlap: 0.75,
+  leftOverlap: 0.625,
+  rightOverlap: 0.625,
+  gap: 0.1875,
+};
+
+// Expected dimensions for two door config
+export const twoDoorExpectedDimensions: ExpectedDimensions = {
+  individualWidth: 12.4375, // (24 + 0.5 + 0.5 - 0.125) / 2
+  individualHeight: 31.0, // 30 + 0.5 + 0.5
+  stileWidth: 1.0,
+  railWidth: 1.0,
+};
+
+// Expected pieces for two door config (2 doors)
+export const twoDoorExpectedPieces: ExpectedPiece[] = [
+  {
+    name: "Stile (Vertical)",
+    width: 1.0,
+    length: 31.0, // Individual height
+    quantity: 4, // 2 per door * 2 doors
+  },
+  {
+    name: "Rail (Horizontal)",
+    width: 1.0,
+    length: 11.1875, // individualWidth - stileWidth*2 + routerDepth*2 = 12.4375 - 2 + 0.75
+    quantity: 4, // 2 per door * 2 doors
+  },
+  {
+    name: "Center Panel",
+    width: 11.1875, // Same as rail length
+    length: 29.75, // individualHeight - railWidth*2 + routerDepth*2 = 31 - 2 + 0.75
+    quantity: 2, // 1 per door
+  },
 ];
